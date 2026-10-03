@@ -1,6 +1,31 @@
 const productModel = require('../models/productModel');
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 
-// GET ambil semua products
+function validateBase64Image(image) {
+    if (image === undefined || image === null ||
+        (typeof image === 'string' && image.trim() === '')) {
+        return { error: 'Field image wajib diisi', image: null };
+    }
+    if (typeof image !== 'string') {
+        return { error: 'Field image harus berupa Base64 yang valid', image: null };
+    }
+    const cleanImage = image.trim().replace(/[\r\n]/g, '');
+
+    const base64Regex = /^[A-Za-z0-9+/]+={0,2}$/;
+
+    if (!base64Regex.test(cleanImage) ||
+        cleanImage.length % 4 !== 0) {
+        return { error: 'Field image harus berupa Base64 yang valid', image: null };
+    }
+    const buffer = Buffer.from(cleanImage, 'base64');
+    if (buffer.length > MAX_IMAGE_SIZE) {
+        return { error: 'Ukuran image maksimal 2 MB', image: null };
+    }
+
+    return { error: null, image: cleanImage };
+}
+
+    // GET ambil semua products
 async function index(req, res) {
     try {
         const products = await productModel.getAllProducts();
@@ -16,7 +41,7 @@ async function index(req, res) {
     }
 }
 
-// GET berdasarkan ID
+    // GET berdasarkan ID
 async function show(req, res) {
     try {
         const id = Number(req.params.id);
@@ -37,29 +62,49 @@ async function show(req, res) {
             error: error.message
         });
     }
-}
+}    
 
-// POST name, price, stock wajib
+    // POST name, price, stock wajib
 async function createProduct(req, res) {
     try {
         const { name, description, price, stock } = req.body;
+        let { image } = req.body;
+
         if (!name || price === undefined || stock === undefined) {
-            return res.status(400).json({ message: 'Field name, price, dan stock wajib diisi' });
+            return res.status(400).json({
+                message: 'Field name, price, dan stock wajib diisi'
+            });
         }
-        const product = await productModel.createProduct({ name, description: description || null, price, stock });
+        const imageResult = validateBase64Image(image);
+        if (imageResult.error) {
+            return res.status(400).json({
+                message: imageResult.error
+            });
+        }
+        image = imageResult.image;
+        const product = await productModel.createProduct({
+            name,
+            description: description || null,
+            price,
+            stock,
+            image
+        });
+
         res.status(201).json({
             message: 'Berhasil menambah data produk',
             data: product
         });
+
     } catch (error) {
-        res.status(500).json({ 
+        res.status(500).json({
             message: 'Gagal menambah data produk',
-            error: error.message 
+            error: error.message
         });
     }
 }
 
-// PUT name, price, stock wajib
+
+    // PUT name, price, stock wajib
 async function updateProduct(req, res) {
     try {
         const id = Number(req.params.id);
@@ -67,6 +112,7 @@ async function updateProduct(req, res) {
             return res.status(400).json({ message: 'ID produk tidak valid' });
         }
         const { name, description, price, stock } = req.body;
+        let { image } = req.body;
         if (!name || price === undefined || stock === undefined) {
             return res.status(400).json({ message: 'Field name, price, dan stock wajib diisi' });
         }
@@ -74,7 +120,15 @@ async function updateProduct(req, res) {
         if (!existing) {
             return res.status(404).json({ message: 'Produk tidak ditemukan' });
         }
-        const product = await productModel.updateProduct(id, { name, description: description || null, price, stock });
+        const imageResult = validateBase64Image(image);
+
+        if (imageResult.error) {
+            return res.status(400).json({
+                message: imageResult.error
+            });
+        }
+        image = imageResult.image;
+        const product = await productModel.updateProduct(id, { name, description: description || null, price, stock,image });
         res.status(200).json({
             message: 'Berhasil memperbarui data produk',
             data: product
