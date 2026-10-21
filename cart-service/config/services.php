@@ -34,5 +34,8 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'product' => [
+        'url' => env('PRODUCT_SERVICE_URL', 'http://product-service:3000'),
+    ],
 
 ];
