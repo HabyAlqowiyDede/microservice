@@ -43,7 +43,7 @@ services:
       - DB_CONNECTION=pgsql
       - DB_HOST=cart-db
       - DB_PORT=5432
-      - DB_DATABASE=cartdb
+      - DB_DATABASE=cartdb  
       - DB_USERNAME=appuser
       - DB_PASSWORD=apppassword
       - PRODUCT_SERVICE_URL=http://product-service:3000
